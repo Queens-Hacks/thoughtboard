@@ -25,6 +25,10 @@ app.config['MONGO_URI'] = app.config['MONGOLAB_URI']  # for flask-pymongo
 pymongo = PyMongo(app)
 
 
+class ChillOut(Exception):
+    """When users get too excited (try to re-up-vote or re-post too soon)."""
+
+
 def check_in(phone_number, code):
     """Check in (and possibly create) a user, verified by the active code.
 
@@ -36,6 +40,23 @@ def check_in(phone_number, code):
         'phone_number': phone_number
     }
     return user_data if code == 'ABC' else None
+
+
+def post_message(phone_number, message):
+    """Try to queue a message for a user.
+
+    Returns the message's position in the queue.
+
+    Raises ChillOut if the user has posted too many messages recently.
+
+    Currently hard-coded in a state where:
+    posting any message succeeds and returns a random queue position
+    EXCEPT the message 'fail' raises ChillOut.
+    """
+    import random
+    if message == 'fail':
+        raise ChillOut('Whoa. Chill out, hey. So many messages.')
+    return random.randint(1, 6)
 
 
 @app.route('/sms', methods=['GET','POST'])
