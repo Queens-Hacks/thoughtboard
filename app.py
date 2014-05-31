@@ -25,6 +25,10 @@ app.config['MONGO_URI'] = app.config['MONGOLAB_URI']  # for flask-pymongo
 pymongo = PyMongo(app)
 
 
+class NoUserException(Exception):
+    """When users get too excited (try to re-up-vote or re-post too soon)."""
+
+
 class ChillOut(Exception):
     """When users get too excited (try to re-up-vote or re-post too soon)."""
 
@@ -39,7 +43,11 @@ def check_in(phone_number, code):
     user_data = {
         'phone_number': phone_number
     }
-    return user_data if code == 'ABC' else None
+
+    if code != 'ABC':
+        raise NoUserException("You fucked up")
+
+    return user_data
 
 
 def post_message(phone_number, message):
@@ -62,11 +70,22 @@ def post_message(phone_number, message):
 @app.route('/sms', methods=['GET','POST'])
 def send_sms():
     
+    #Get number and response
     from_number = request.values.get('From', None)
     from_response = request.values.get('Body',None)
-
-    message=from_response
+    
     resp = twilio.twiml.Response()
+    #check if user exists
+    try:
+        check = check_in(from_number,from_response);
+
+    except NoUserException:
+        #error handling
+        message="fucked up"
+        resp.message(message)
+        return str(resp)
+
+    message = "Verified"
     resp.message(message)
 
     return str(resp)
