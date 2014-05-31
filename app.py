@@ -59,6 +59,18 @@ def post_message(phone_number, message):
     return random.randint(1, 6)
 
 
+def save_vote(phone_number):
+    """Register a vote for a user.
+
+    Returns 1 if the vote was counted.
+    Raises ChillOut if the user has already voted for the showing post.
+
+    Currently it is hard-coded to always succeed
+    """
+    return 1
+
+
+
 @app.route('/sms', methods=['GET','POST'])
 def send_sms():
     
