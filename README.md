@@ -1,4 +1,4 @@
 the-best-idea
 =============
 
-clearly
+Event: [BattleHack Toronto](https://2014.battlehack.org/toronto#register)
