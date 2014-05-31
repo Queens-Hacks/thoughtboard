@@ -26,7 +26,7 @@ pymongo = PyMongo(app)
 
 
 class NoUserException(Exception):
-    """When users get too excited (try to re-up-vote or re-post too soon)."""
+    """When user uses code that doesn't exist"""
 
 
 class ChillOut(Exception):
@@ -50,6 +50,14 @@ def check_in(phone_number, code):
     return user_data
 
 
+def vote():
+    """ Allows users to vote for the current posted message and returns
+    True if vote was registered, otherwise returns False. 
+
+    Currently defaults to True"""
+    return True
+
+
 def post_message(phone_number, message):
     """Try to queue a message for a user.
 
@@ -68,24 +76,41 @@ def post_message(phone_number, message):
 
 
 @app.route('/sms', methods=['GET','POST'])
-def send_sms():
+def send_sms():    
     
     #Get number and response
     from_number = request.values.get('From', None)
     from_response = request.values.get('Body',None)
     
     resp = twilio.twiml.Response()
-    #check if user exists
-    try:
-        check = check_in(from_number,from_response);
+    
+    #Check if user response is vote
+    if "vote" in from_response.lower().split(' ',1)[0]:
+        if vote():
+            message="Vote successful"
+        else:
+            message="Vote unsuccessful"
 
-    except NoUserException:
-        #error handling
-        message="fucked up"
-        resp.message(message)
-        return str(resp)
 
-    message = "Verified"
+    #Check if user response is a post
+    elif "post" in from_response.lower().split(' ',1)[0]:
+        queue_num = post_message(from_number,from_response.lower().split(' ',1)[1])
+        message = "Your message is queued in position " + str(queue_num)
+
+    else:
+        #check if user exists
+        try:
+            check = check_in(from_number,from_response);
+
+        except NoUserException:
+            #error handling
+            message="fucked up"
+            resp.message(message)
+            return str(resp)
+
+        message = ''' Thanks for checking in! To vote, Please
+        text 'vote', otherwise text 'post' and type in your message '''
+   
     resp.message(message)
 
     return str(resp)
