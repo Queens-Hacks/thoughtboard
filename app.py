@@ -22,6 +22,19 @@ app.config['MONGO_URI'] = app.config['MONGOLAB_URI']  # for flask-pymongo
 pymongo = PyMongo(app)
 
 
+def check_in(phone_number, code):
+    """Check in (and possibly create) a user, verified by the active code.
+
+    Returns the user's data, or None if the code is wrong.
+
+    The correct code is currently hard-coded to ABC.
+    """
+    user_data = {
+        'phone_number': phone_number
+    }
+    return user_data if code == 'ABC' else None
+
+
 @app.route('/')
 def home():
     return "yo"
