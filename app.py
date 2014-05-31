@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
-from flask import Flask
+from flask import Flask,request, redirect
+import twilio.twiml
 
 app = Flask(__name__)
 
@@ -14,9 +15,14 @@ app.config.update(**getenv(
 ))
 
 
-@app.route('/')
-def home():
-    return "yo"
+@app.route('/sms', methods=['GET','POST'])
+def send_sms():
+    from_number = request.values.get('From', None)
+    message="Hey there"
+    resp = twilio.twiml.Response()
+    resp.message(message)
+ 
+    return str(resp)
 
 
 if __name__ == '__main__':
