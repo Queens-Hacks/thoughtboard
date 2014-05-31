@@ -61,8 +61,11 @@ def post_message(phone_number, message):
 
 @app.route('/sms', methods=['GET','POST'])
 def send_sms():
+    
     from_number = request.values.get('From', None)
-    message="Hey there"
+    from_response = request.values.get('Body',None)
+
+    message=from_response
     resp = twilio.twiml.Response()
     resp.message(message)
 
