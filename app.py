@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 import os
-from flask import Flask
+import twilio.twiml
+from flask import Flask, request
 from flask.ext.pymongo import PyMongo
+
+app = Flask(__name__)
 
 
 CONFIGS = (
@@ -35,9 +38,14 @@ def check_in(phone_number, code):
     return user_data if code == 'ABC' else None
 
 
-@app.route('/')
-def home():
-    return "yo"
+@app.route('/sms', methods=['GET','POST'])
+def send_sms():
+    from_number = request.values.get('From', None)
+    message="Hey there"
+    resp = twilio.twiml.Response()
+    resp.message(message)
+
+    return str(resp)
 
 
 if __name__ == '__main__':
