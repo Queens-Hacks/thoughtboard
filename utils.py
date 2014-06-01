@@ -1,4 +1,5 @@
-from datetime import timedelta
+import pytz
+from datetime import datetime, timedelta
 from flask import make_response, request, current_app
 from functools import update_wrapper
 
@@ -7,6 +8,11 @@ try:
     basestring = basestring
 except NameError:
     basestring = str
+
+
+def tznow():
+    """Get the current timezone-aware-ish time"""
+    return datetime.now(pytz.utc)
 
 
 def crossdomain(origin=None, methods=None, headers=None, max_age=21600,

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import twilio.twiml
 from flask import Flask, request, jsonify
 from flask.ext.pymongo import PyMongo, ASCENDING, DESCENDING
-from utils import crossdomain
+from utils import crossdomain, tznow
 
 
 app = Flask(__name__)
@@ -77,11 +77,6 @@ class ChillOut(Exception):
     """When users get too excited (try to re-up-vote or re-post too soon)."""
 
 
-def notz(dt):
-    """Remove the timezone info from a datetime object"""
-    return dt.replace(tzinfo=None)
-
-
 def create_sms_code():
     """Create a new code. More races woo!"""
     while True:
@@ -93,7 +88,7 @@ def create_sms_code():
 
     new_sms = {
         'code': code,
-        'created': datetime.now()
+        'created': tznow()
     }
     pymongo.db.smscodes.insert(new_sms)
     return new_sms
@@ -109,7 +104,7 @@ def get_sms_code():
         current = next(codes)
     except StopIteration:  # empty database
         current = create_sms_code()
-    if notz(current['created']) + SMS_CODE_RESET < datetime.now():
+    if current['created'] + SMS_CODE_RESET < tznow():
         # yo, WARNING: off to the races!
         current = create_sms_code()
     return current['code']
@@ -124,7 +119,7 @@ def check_sms_code(test_code):
     else:
         previous = next(codes)
         if (test_code == previous['code'] and
-            datetime.now() - notz(current['created']) < SMS_CODE_GRACE):
+            tznow() - current['created'] < SMS_CODE_GRACE):
             return True
         else:
             return False
@@ -146,7 +141,7 @@ def is_checked_in(user):
     """Test whether a user is checked in or not."""
     if user is None:
         return False
-    a_ok = notz(user['last_checkin']) + USER_CHECKIN_EXPIRE > datetime.now()
+    a_ok = user['last_checkin'] + USER_CHECKIN_EXPIRE > tznow()
     return a_ok
 
 
@@ -161,9 +156,9 @@ def check_in_with_sms_code(phone_number, code):
     if user is None:  # so racey
         user = {
             'phone_number': phone_number,
-            'created': datetime.now(),
+            'created': tznow(),
         }
-    user['last_checkin'] = datetime.now()
+    user['last_checkin'] = tznow()
     pymongo.db.users.save(user)
     return user
 
@@ -180,7 +175,7 @@ def update_showing():
     if next_ is not None:
         print('changing...')
         pymongo.db.posts.update({'_id': next_['_id']},
-                                {'$set': {'showtime': datetime.now()}})
+                                {'$set': {'showtime': tznow()}})
     else:
         print('nothing in the queue')
 
@@ -196,13 +191,13 @@ def post_message(user, message):
     prev = pymongo.db.posts.find_one({'poster_id': user_id},
                                      sort=[('submitted', DESCENDING)])
     if (prev is not None and
-        notz(prev['submitted']) + USER_POST_THROTTLE > datetime.now()):
+        prev['submitted'] + USER_POST_THROTTLE > tznow()):
         raise ChillOut('Whoa. Chill out, hey. So many messages.')
 
     post = {
         'message': message,
         'poster_id': user_id,
-        'submitted': datetime.now(),
+        'submitted': tznow(),
         'extender_ids': [user_id],
     }
     pymongo.db.posts.insert(post)
