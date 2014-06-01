@@ -11,6 +11,15 @@ connection.onmessage = function(e) {
   }
 }
 
+var request = new XMLHttpRequest();
+request.open('GET', '/display/info', true);
+request.onload = function() {
+  var initial_data = JSON.parse(request.responseText);
+  updateSms(initial_data.smsCode);
+  updateQr(initial_data.qrCode);
+  updateMessage(initial_data.message);
+}
+request.send();
 
 var smsValBox = document.getElementById('sms-code');
 function updateSms(val) {
@@ -18,8 +27,19 @@ function updateSms(val) {
 }
 
 var qrCodeBox = document.getElementById('qr-code');
+var HASH_ROOT = 'http://qhack.ca/the-best-idea-webapp/#';
+var qrcode = new QRCode(qrCodeBox, {
+    text: HASH_ROOT,
+    width: 256,
+    height: 256,
+    colorDark : "#000000",
+    colorLight : "#ffffff",
+    correctLevel : QRCode.CorrectLevel.H
+});
 function updateQr(val) {
-  qrCodeBox.innerHTML = val;
+  qrcode.clear();
+  var url = HASH_ROOT + val;
+  qrcode.makeCode(url);
 }
 
 var messageBox = document.getElementById('message');
