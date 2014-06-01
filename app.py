@@ -8,6 +8,7 @@ from flask import Flask, request, jsonify, abort, render_template
 from flask.ext.pymongo import PyMongo, ASCENDING, DESCENDING
 from utils import crossdomain, tznow
 from bson import ObjectId
+from bson.errors import InvalidId
 
 
 # sockets module monkey-patches this to hook in to events
@@ -129,7 +130,6 @@ def get_qr_code():
     """Fetch the current qr code for display"""
     code = pymongo.db.qrcodes.find_one(sort=[('created', DESCENDING)])
     if code is None:
-        print('???????????')
         code = refresh_qr_code()
     return code
 
@@ -214,8 +214,6 @@ def check_qr_code(test_code):
     QRs are immediately expired after one use.
     """
     current = pymongo.db.qrcodes.find_one(sort=[('created', DESCENDING)])
-    print(current)
-    print(test_code)
     if test_code == current['code']:
         refresh_qr_code()
         return True
@@ -224,7 +222,11 @@ def check_qr_code(test_code):
 
 def check_in_with_qr_code(user_id, code):
     """Check in an existing user with a QR code."""
-    user = pymongo.db.users.find_one({'_id': ObjectId(user_id)})
+    try:
+        user_oid = ObjectId(user_id)
+    except InvalidId:
+        raise NoSuchUserException('nope nuttin')
+    user = pymongo.db.users.find_one({'_id': ObjectId(user_id)})  ## ERRROROING
     if user is None:
         raise NoSuchUserException('no user exists with id {}'.format(user_id))
     if not check_qr_code(code):
