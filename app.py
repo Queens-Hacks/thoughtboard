@@ -241,12 +241,12 @@ def get_current_post():
 def update_showing():
     next_ = pymongo.db.posts.find_one({'showtime': {'$exists': False}},
                                       sort=[('showtime', ASCENDING)])
-    if next_ is not None:
-        print('changing...')
-        pymongo.db.posts.update({'_id': next_['_id']},
-                                {'$set': {'showtime': tznow()}})
-    else:
-        print('nothing in the queue')
+    # if next_ is not None:
+    #     print('changing...')
+    #     pymongo.db.posts.update({'_id': next_['_id']},
+    #                             {'$set': {'showtime': tznow()}})
+    # else:
+    #     print('nothing in the queue')
 
 
 def post_message(user, message):
