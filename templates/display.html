@@ -6,11 +6,14 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
   </head>
   <body>
-    <h1 id="message">hello this is a message</h1>
+    <div id="app-container">
+      <div class="throne-page">
+        <h1 id="message">hello this is a message</h1>
 
-    <div>text <code><span id="sms-code">the-code</span></code> to NUMBER blah blah</div>
-    <div>scan this: <code><span id="qr-code">qr-code</span></code> you will like it</div>
-
+        <p>Text <code><span id="sms-code">the-code</span></code><br/>to <code>437-800-2675</code></p>
+        <span class="page-link" id="qr-code">or scan this</span>
+      </div>
+    </div>
     <script src="{{ url_for('static', filename='qrcode.js') }}"></script>
     <script src="{{ url_for('static', filename='reconnecting-websocket.js') }}"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
