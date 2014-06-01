@@ -214,7 +214,7 @@ def check_qr_code(test_code):
 
 def check_in_with_qr_code(user_id, code):
     """Check in an existing user with a QR code."""
-    user = pymongo.db.users.find_one({'_id': ObjectId(userId)})
+    user = pymongo.db.users.find_one({'_id': ObjectId(user_id)})
     if user is None:
         raise NoSuchUserException('no user exists with id {}'.format(user_id))
     if not check_qr_code(code):
