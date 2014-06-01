@@ -369,9 +369,6 @@ def home():
     return resp
 
 
-
-
-
 @app.route('/webapp/get-id')
 @crossdomain(origin='*')
 def webapp_id():
@@ -426,7 +423,7 @@ def webapp_cards():
             "message": card['message'],
             "id": str(card['_id'])
         })
-    return jsonify(response=card_messages)
+    return jsonify(status='cool', content=card_messages)
 
 
 @app.route('/webapp/vote', methods=['POST'])
@@ -436,13 +433,11 @@ def webapp_vote():
     user = get_user_from_user_id(ObjectId(request.values['userId']))
     if is_checked_in(user):
         save_vote(user)
-        return jsonify(response="success")
+        return jsonify(status='cool')
     else:
-        return jsonify(response="error")
-
-
-    #if exists, let user vote
-    #if it doesn't exist, return error
+        resp = jsonify(response="error")
+        resp.status_code = 400
+        return resp
 
 
 # dev stuff
