@@ -4,7 +4,7 @@ import random
 from datetime import datetime, timedelta
 import twilio.twiml
 from flask import Flask, request
-from flask.ext.pymongo import PyMongo, DESCENDING
+from flask.ext.pymongo import PyMongo, ASCENDING, DESCENDING
 
 app = Flask(__name__)
 
@@ -165,6 +165,14 @@ def get_current_post():
     return showing
 
 
+def update_showing():
+    next_ = pymongo.db.posts.find_one({'showtime': {'$exists': False}},
+                                      sort=[('showtime', ASCENDING)])
+    if next_ is not None:
+        pymongo.db.posts.update({'_id': next_['_id']},
+                                {'$set': {'showtime': datetime.now()}})
+
+
 def post_message(user, message):
     """Try to queue a message for a user.
 
@@ -271,7 +279,12 @@ def handle_sms():
 
 @app.route('/')
 def home():
-    message = get_current_post() or 'No post yet :('
+    update_showing()
+    message = get_current_post()
+    if message is not None:
+        message = message['message']
+    else:
+        message = 'No post yet :('
     return message
 
 
