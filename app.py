@@ -6,7 +6,7 @@ import twilio.twiml
 from flask import Flask, request, jsonify
 from flask.ext.pymongo import PyMongo, ASCENDING, DESCENDING
 from utils import crossdomain, tznow
-
+from bson import ObjectId
 
 app = Flask(__name__)
 
@@ -135,6 +135,9 @@ def get_queue():
 def get_user_from_phone(phone_number):
     """Get a user given their phone number, or None if they don't exist"""
     return pymongo.db.users.find_one({'phone_number': phone_number})
+
+def get_user_from_user_id(userid):
+    return  pymongo.db.users.find_one({'_id': userid})
 
 
 def is_checked_in(user):
@@ -323,20 +326,13 @@ def webapp_cards():
 @app.route('/webapp/vote', methods=['POST'])
 @crossdomain(origin='*')
 def webapp_vote():
-     userid = request.values['userid']
 
-    #get user id passed as parameter
-    # check userid exists
-
-    # if is_checked_in(userid)
-    #     save_vote(userid)
-    #     return jsonify(response="success")
-    # else
-    #     return jsonify(response="error")
-
-
-
-
+    user = get_user_from_user_id(ObjectId(request.values['userId']))
+    if is_checked_in(user):
+        save_vote(user)
+        return jsonify(response="success")
+    else:
+        return jsonify(response="error")
 
 
     #if exists, let user vote
