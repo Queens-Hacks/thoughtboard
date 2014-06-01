@@ -520,6 +520,18 @@ def display_data():
 
 # dev stuff
 
+@app.route('/preload')
+def preload():
+    """Pre-load some great posts"""
+    messages = (
+        "message one",
+        "message_two",
+        "message_three",
+    )
+    user = pymongo.db.users.find_one()  # doesn't matter who
+    return str([post_message(user, m) for m in messages])
+
+
 def push():
     """Push a test request context"""
     ctx = app.test_request_context()
