@@ -196,7 +196,7 @@ def check_in_with_sms_code(phone_number, code):
     Returns the user's data, or raises InvalidCodeException if the code is wrong or expired.
     """
     if not check_sms_code(code):
-        raise InvalidCodeException("You There's been an error")
+        raise InvalidCodeException("You There has been an error")
     user = pymongo.db.users.find_one({'phone_number': phone_number})
     if user is None:  # so racey
         user = {
@@ -228,7 +228,7 @@ def check_in_with_qr_code(user_id, code):
     if user is None:
         raise NoSuchUserException('no user exists with id {}'.format(user_id))
     if not check_qr_code(code):
-        raise InvalidCodeException('You There's been an error -- wrong qr code yoyo')
+        raise InvalidCodeException('You There has been an error -- wrong qr code yoyo')
     user['last_checkin'] = tznow()
     pymongo.db.users.save(user)
 
@@ -236,7 +236,7 @@ def check_in_with_qr_code(user_id, code):
 def create_account_with_qr_code(code):
     """Creates a new user with a QR code."""
     if not check_qr_code(code):
-        raise InvalidCodeException('You There's been an error -- wrong qr code yooy')
+        raise InvalidCodeException('You There has been an error -- wrong qr code yooy')
     now = tznow()
     user = {
         'qr_code': code,
@@ -356,7 +356,7 @@ def handle_sms():
 
             except InvalidCodeException:
                 #error handling
-                message="There's been an error, though you are already checked in..."
+                message="There has been an error, though you are already checked in..."
                 resp.message(message)
                 return str(resp)
 
@@ -370,7 +370,7 @@ def handle_sms():
                 check = check_in_with_sms_code(from_number, first_word);
             except InvalidCodeException:
                 #error handling
-                message="There's been an error, and you are not even checked in :("
+                message="There has been an error, and you are not even checked in :("
                 resp.message(message)
                 return str(resp)
 
