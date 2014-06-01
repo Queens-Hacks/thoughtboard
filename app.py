@@ -186,7 +186,7 @@ def post_message(user, message):
         'extenders': [user_id],
     }
     pymongo.db.posts.insert(post)
-    return len(get_queue())
+    return get_queue().count()
 
 
 def save_vote(user):
