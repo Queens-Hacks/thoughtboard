@@ -184,7 +184,7 @@ def post_message(user, message):
     prev = pymongo.db.posts.find_one({'poster_id': user_id},
                                      sort=[('submitted', DESCENDING)])
     if (prev is not None and
-        notz(prev['submitted']) + USER_POST_THROTTLE < datetime.now()):
+        notz(prev['submitted']) + USER_POST_THROTTLE > datetime.now()):
         raise ChillOut('Whoa. Chill out, hey. So many messages.')
 
     post = {
@@ -201,7 +201,6 @@ def save_vote(user):
     """Register a vote for a user.
 
     Returns 1 if the vote was counted.
-    Raises ChillOut if the user has already voted for the showing post.
 
     Currently it is hard-coded to always succeed
     """
