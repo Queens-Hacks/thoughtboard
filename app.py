@@ -28,6 +28,9 @@ pymongo = PyMongo(app)
 class NoUserException(Exception):
     """When user uses code that doesn't exist"""
 
+class NotCheckedInException(Exception):
+    """When user tries to vote or post before checking in"""
+
 
 class ChillOut(Exception):
     """When users get too excited (try to re-up-vote or re-post too soon)."""
@@ -48,6 +51,16 @@ def check_in(phone_number, code):
         raise NoUserException("You fucked up")
 
     return user_data
+
+
+def has_checked_in(phone_number):
+    """ Checks if the phone number is already in the database
+    If it is, then the user is connected and returns true. 
+    Otherwise returns false.
+
+    Currently returns a random boolean"""
+    import random
+    return bool(random.getrandbits(1))
 
 
 def vote():
@@ -81,36 +94,59 @@ def send_sms():
     #Get number and response
     from_number = request.values.get('From', None)
     from_response = request.values.get('Body',None)
-    
+    first_word = from_response.lower().split(' ',1)[0];
     resp = twilio.twiml.Response()
     
-    #Check if user response is vote
-    if "vote" in from_response.lower().split(' ',1)[0]:
-        if vote():
-            message="Vote successful"
+    #Checks if user already checked in
+    if has_checked_in(from_number):
+         #Check if user response is vote
+        if "vote" in first_word:
+            if vote():
+                message="Vote successful"
+            else:
+                message="Vote unsuccessful"
+
+
+        #Check if user response is a post
+        elif "post" in first_word:
+            queue_num = post_message(from_number,from_response.lower().split(' ',1)[1])
+            message = "Your message is queued in position " + str(queue_num)
+
         else:
-            message="Vote unsuccessful"
+            #check if user exists
+            try:
+                check = check_in(from_number,from_response);
 
+            except NoUserException:
+                #error handling
+                message="fucked up"
+                resp.message(message)
+                return str(resp)
 
-    #Check if user response is a post
-    elif "post" in from_response.lower().split(' ',1)[0]:
-        queue_num = post_message(from_number,from_response.lower().split(' ',1)[1])
-        message = "Your message is queued in position " + str(queue_num)
+            message = ''' Thanks for checking in! To vote, Please
+            text 'vote', otherwise text 'post' and type in your message '''
+    
+    #User hasn't checked in but is checking in now
+    elif "post" not in first_word and "vote" not in first_word:
+          #check if user exists
+            try:
+                check = check_in(from_number,from_response);
 
+            except NoUserException:
+                #error handling
+                message="fucked up"
+                resp.message(message)
+                return str(resp)
+
+            message = ''' Thanks for checking in! To vote, Please
+            text 'vote', otherwise text 'post' and type in your message '''
     else:
-        #check if user exists
-        try:
-            check = check_in(from_number,from_response);
+        #error handling
+        message="Not checked in"
+        resp.message(message)
+        return str(resp)
 
-        except NoUserException:
-            #error handling
-            message="fucked up"
-            resp.message(message)
-            return str(resp)
-
-        message = ''' Thanks for checking in! To vote, Please
-        text 'vote', otherwise text 'post' and type in your message '''
-   
+    
     resp.message(message)
 
     return str(resp)
