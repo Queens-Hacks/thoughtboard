@@ -257,7 +257,7 @@ def get_current_post():
 
 def update_showing():
     next_ = pymongo.db.posts.find_one({'showtime': {'$exists': False}},
-                                      sort=[('showtime', ASCENDING)])
+                                      sort=[('submitted', ASCENDING)])
     if next_ is not None:
         print('changing...')
         pymongo.db.posts.update({'_id': next_['_id']},
