@@ -129,6 +129,7 @@ def get_qr_code():
     """Fetch the current qr code for display"""
     code = pymongo.db.qrcodes.find_one(sort=[('created', DESCENDING)])
     if code is None:
+        print('???????????')
         code = refresh_qr_code()
     return code
 
@@ -163,6 +164,8 @@ def get_user_from_phone(phone_number):
 def get_user_from_user_id(userid):
     return  pymongo.db.users.find_one({'_id': userid})
 
+def get_post_from_post_id(post_id):
+    return  pymongo.db.posts.find_one({'_id': post_id})
 
 def is_checked_in(user):
     """Test whether a user is checked in or not."""
@@ -211,6 +214,8 @@ def check_qr_code(test_code):
     QRs are immediately expired after one use.
     """
     current = pymongo.db.qrcodes.find_one(sort=[('created', DESCENDING)])
+    print(current)
+    print(test_code)
     if test_code == current['code']:
         refresh_qr_code()
         return True
@@ -219,11 +224,13 @@ def check_qr_code(test_code):
 
 def check_in_with_qr_code(user_id, code):
     """Check in an existing user with a QR code."""
-    user = pymongo.db.users.find_one({'_id': ObjectId(userId)})
+    user = pymongo.db.users.find_one({'_id': ObjectId(user_id)})
     if user is None:
         raise NoSuchUserException('no user exists with id {}'.format(user_id))
     if not check_qr_code(code):
         raise InvalidCodeException('You fucked up -- wrong qr code yoyo')
+    user['last_checkin'] = tznow()
+    pymongo.db.users.save(user)
 
 
 def create_account_with_qr_code(code):
@@ -236,6 +243,7 @@ def create_account_with_qr_code(code):
         'created': now,
         'last_checkin': now,
     }
+    pymongo.db.users.insert(user)
     return user
 
 
@@ -282,7 +290,7 @@ def post_message(user, message):
     return get_queue().count()
 
 
-def save_vote(user):
+def save_vote(user, post= None):
     """Register a vote for a user.
 
     Returns 1 if the vote was counted.
@@ -290,10 +298,15 @@ def save_vote(user):
     Currently it is hard-coded to always succeed
     """
 
-    current_post = get_current_post();
-    pymongo.db.posts.update({"_id": current_post["_id"]},
-                            {"$addToSet":{"extender_ids":user["_id"]}});
+    if post is None:
+        post = get_current_post();
+
+    pymongo.db.posts.update({"_id": post["_id"]},
+                                {"$addToSet":{"extender_ids":user["_id"]}});
+
     return 1
+
+
 
 
 @app.route('/sms', methods=['GET','POST'])
@@ -390,7 +403,7 @@ def home():
 @app.route('/webapp/get-id')
 @crossdomain(origin='*')
 def webapp_id():
-    code = request.values.get('code')
+    code = request.values.get('hash')
     if code is None:
         resp = jsonify(status='bad', message='missing code')
         resp.status_code = 400
@@ -401,13 +414,14 @@ def webapp_id():
         resp = jsonify(status='bad', message='invalid code')
         resp.status_code = 400
         return resp
+
     return jsonify(status='cool', userId=str(user['_id']))
 
 
 @app.route('/webapp/check-in')
 @crossdomain(origin='*')
 def webapp_checkin():
-    code = request.values.get('code')
+    code = request.values.get('hash')
     if code is None:
         resp = jsonify(status='bad', message='missing code')
         resp.status_code = 400
@@ -444,13 +458,15 @@ def webapp_cards():
     return jsonify(status='cool', content=card_messages)
 
 
-@app.route('/webapp/vote', methods=['POST'])
+@app.route('/webapp/upvote', methods=['POST'])
 @crossdomain(origin='*')
 def webapp_vote():
+    post_id = request.values['cardId'];
 
     user = get_user_from_user_id(ObjectId(request.values['userId']))
     if is_checked_in(user):
-        save_vote(user)
+        post = get_post_from_post_id(post_id)
+        save_vote(user,post)
         return jsonify(status='cool')
     else:
         resp = jsonify(response="error")
