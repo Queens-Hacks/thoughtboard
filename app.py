@@ -4,10 +4,15 @@ import random
 from datetime import datetime, timedelta
 import twilio.twiml
 from bson import ObjectId
-from flask import Flask, request, jsonify, abort
+from flask import Flask, request, jsonify, abort, render_template
 from flask.ext.pymongo import PyMongo, ASCENDING, DESCENDING
 from utils import crossdomain, tznow
 from bson import ObjectId
+
+
+# sockets module monkey-patches this to hook in to events
+socket_push = lambda **kwargs: None
+
 
 app = Flask(__name__)
 
@@ -98,6 +103,7 @@ def create_sms_code():
         'created': tznow()
     }
     pymongo.db.smscodes.insert(new_sms)
+    socket_push(key='new_sms', val=new_sms)
     return new_sms
 
 
@@ -115,6 +121,7 @@ def refresh_qr_code():
         'created': tznow()
     }
     pymongo.db.qrcodes.insert(new_qr)
+    socket_push(key='new_qr', val=new_qr)
     return new_qr
 
 
@@ -247,6 +254,8 @@ def update_showing():
     #                             {'$set': {'showtime': tznow()}})
     # else:
     #     print('nothing in the queue')
+    #
+    # if the the display hath changed: socket_push(key='new_message', val=new_message)
 
 
 def post_message(user, message):
@@ -449,7 +458,12 @@ def webapp_vote():
         return resp
 
 
-@app.route('/display')
+@app.route('/display/')
+def display_display_yo():
+    return render_template('display.html')
+
+
+@app.route('/display/info')
 @crossdomain(origin='*')
 def display_data():
     display_stuff = {
