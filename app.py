@@ -3,6 +3,7 @@ import os
 import random
 from datetime import datetime, timedelta
 import twilio.twiml
+from bson import ObjectId
 from flask import Flask, request, jsonify, abort
 from flask.ext.pymongo import PyMongo, ASCENDING, DESCENDING
 from utils import crossdomain, tznow
@@ -69,7 +70,12 @@ posts: {
 class InvalidCodeException(Exception):
     """When user uses code that doesn't exist"""
 
+
 class NotCheckedInException(Exception):
+    """When user tries to vote or post before checking in"""
+
+
+class NoSuchUserException(Exception):
     """When user tries to vote or post before checking in"""
 
 
@@ -193,6 +199,9 @@ def check_qr_code(test_code):
 
 def check_in_with_qr_code(user_id, code):
     """Check in an existing user with a QR code."""
+    user = pymongo.db.users.find_one({'_id': ObjectId(userId)})
+    if user is None:
+        raise NoSuchUserException('no user exists with id {}'.format(user_id))
     if not check_qr_code(code):
         raise InvalidCodeException('You fucked up -- wrong qr code yoyo')
 
@@ -361,8 +370,26 @@ def webapp_id():
 @app.route('/webapp/check-in')
 @crossdomain(origin='*')
 def webapp_checkin():
-    code = request.values.get('code') or abort(400)
-    user_id = request.values.get('userId') or abort(400)
+    code = request.values.get('code')
+    if code is None:
+        resp = jsonify(status='bad', message='missing code')
+        resp.status_code = 400
+        return resp
+    user_id = request.values.get('userId')
+    if user_id is None:
+        resp = jsonify(status='bad', message='missing userId')
+        resp.status_code = 400
+        return resp
+    try:
+        check_in_with_qr_code(user_id, code)
+    except NoSuchUserException:
+        resp = jsonify(status='bad', message='no such user')
+        resp.status_code = 400
+        return resp
+    except InvalidCodeException:
+        resp = jsonify(status='bad', message='invalid code')
+        resp.status_code = 400
+        return resp
     return jsonify(status='cool')
 
 
