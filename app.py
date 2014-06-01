@@ -3,7 +3,8 @@ import os
 import random
 from datetime import datetime, timedelta
 import twilio.twiml
-from flask import Flask, request, jsonify
+from bson import ObjectId
+from flask import Flask, request, jsonify, abort
 from flask.ext.pymongo import PyMongo, ASCENDING, DESCENDING
 from utils import crossdomain, tznow
 from bson import ObjectId
@@ -41,7 +42,8 @@ USER_POST_THROTTLE = timedelta(seconds=0)
 """Collection schemas
 
 users: {
-    phone_number: string
+    phone_number: string  # not present if it's a qr signup
+    qr_code: strong  # not present if sms signup
     created: datetime
     last_checkin: datetime
 }
@@ -69,7 +71,12 @@ posts: {
 class InvalidCodeException(Exception):
     """When user uses code that doesn't exist"""
 
+
 class NotCheckedInException(Exception):
+    """When user tries to vote or post before checking in"""
+
+
+class NoSuchUserException(Exception):
     """When user tries to vote or post before checking in"""
 
 
@@ -94,6 +101,22 @@ def create_sms_code():
     return new_sms
 
 
+def refresh_qr_code():
+    """Create a new one"""
+    while True:
+        code = ''.join(random.choice('abcdefghijklmnopqrstuvwxyz1234567890')
+                       for _ in range(6))
+        existing_with_code = pymongo.db.qrcodes.find_one({'code': code})
+        if existing_with_code is None:
+            break
+
+    new_qr = {
+        'code': code,
+        'created': tznow()
+    }
+    pymongo.db.qrcodes.INSERT(new_qr)
+
+
 def get_sms_code():
     """Fetches the most up-to-date SMS code for the billboard.
 
@@ -108,21 +131,6 @@ def get_sms_code():
         # yo, WARNING: off to the races!
         current = create_sms_code()
     return current['code']
-
-
-def check_sms_code(test_code):
-    """Checks whether the SMS code is currently valid."""
-    codes = pymongo.db.smscodes.find().sort('created', DESCENDING)
-    current = next(codes)
-    if test_code == current['code']:
-        return True
-    else:
-        previous = next(codes)
-        if (test_code == previous['code'] and
-            tznow() - current['created'] < SMS_CODE_GRACE):
-            return True
-        else:
-            return False
 
 
 def get_queue():
@@ -148,6 +156,21 @@ def is_checked_in(user):
     return a_ok
 
 
+def check_sms_code(test_code):
+    """Checks whether the SMS code is currently valid."""
+    codes = pymongo.db.smscodes.find(sort=[('created', DESCENDING)])
+    current = next(codes)
+    if test_code == current['code']:
+        return True
+    else:
+        previous = next(codes)
+        if (test_code == previous['code'] and
+            tznow() - current['created'] < SMS_CODE_GRACE):
+            return True
+        else:
+            return False
+
+
 def check_in_with_sms_code(phone_number, code):
     """Check in (and possibly create) a user, verified by the active code.
 
@@ -163,6 +186,40 @@ def check_in_with_sms_code(phone_number, code):
         }
     user['last_checkin'] = tznow()
     pymongo.db.users.save(user)
+    return user
+
+
+def check_qr_code(test_code):
+    """Validate a qr code for realz.
+
+    QRs are immediately expired after one use.
+    """
+    current = pymongo.db.qrcodes.find_one(sort=[('created', DESCENDING)])
+    if test_code == current['code']:
+        refresh_qr_code()
+        return True
+    return False
+
+
+def check_in_with_qr_code(user_id, code):
+    """Check in an existing user with a QR code."""
+    user = pymongo.db.users.find_one({'_id': ObjectId(userId)})
+    if user is None:
+        raise NoSuchUserException('no user exists with id {}'.format(user_id))
+    if not check_qr_code(code):
+        raise InvalidCodeException('You fucked up -- wrong qr code yoyo')
+
+
+def create_account_with_qr_code(code):
+    """Creates a new user with a QR code."""
+    if not check_qr_code(code):
+        raise InvalidCodeException('You fucked up -- wrong qr code yooy')
+    now = tznow()
+    user = {
+        'qr_code': code,
+        'created': now,
+        'last_checkin': now,
+    }
     return user
 
 
@@ -227,7 +284,11 @@ def handle_sms():
     #Get number and response
     from_number = request.values['From']
     from_response = request.values['Body']
-    first_word = from_response.lower().strip().split(' ',1)[0];
+    first_word = from_response.lower().strip().split(' ', 1)[0];
+    try:
+        user_post = from_response.lower().strip().split(' ', 1)[1]
+    except IndexError:
+        user_post = None
     resp = twilio.twiml.Response()
 
     user = get_user_from_phone(from_number)
@@ -244,8 +305,12 @@ def handle_sms():
 
         #Check if user response is a post
         elif "post" in first_word:
+            if user_post is None:
+                message = "whoops, no post provided, nothing to do."
+                resp.message(message)
+                return str(resp)
             try:
-                queue_num = post_message(user, from_response.lower().split(' ',1)[1])
+                queue_num = post_message(user, user_post)
             except ChillOut:
                 message = "chill out dude. wait a bit, then post again."
                 resp.message(message)
@@ -306,10 +371,48 @@ def home():
 
 
 
+
 @app.route('/webapp/get-id')
 @crossdomain(origin='*')
 def webapp_id():
-    return '{"hello": "mr webbapp"}'
+    code = request.values.get('code')
+    if code is None:
+        resp = jsonify(status='bad', message='missing code')
+        resp.status_code = 400
+        return resp
+    try:
+        user = create_account_with_qr_code(code)
+    except InvalidCodeException:
+        resp = jsonify(status='bad', message='invalid code')
+        resp.status_code = 400
+        return resp
+    return jsonify(status='cool', userId=str(user['_id']))
+
+
+@app.route('/webapp/check-in')
+@crossdomain(origin='*')
+def webapp_checkin():
+    code = request.values.get('code')
+    if code is None:
+        resp = jsonify(status='bad', message='missing code')
+        resp.status_code = 400
+        return resp
+    user_id = request.values.get('userId')
+    if user_id is None:
+        resp = jsonify(status='bad', message='missing userId')
+        resp.status_code = 400
+        return resp
+    try:
+        check_in_with_qr_code(user_id, code)
+    except NoSuchUserException:
+        resp = jsonify(status='bad', message='no such user')
+        resp.status_code = 400
+        return resp
+    except InvalidCodeException:
+        resp = jsonify(status='bad', message='invalid code')
+        resp.status_code = 400
+        return resp
+    return jsonify(status='cool')
 
 
 #Endpoint to get all messages and ids from queue
@@ -319,8 +422,11 @@ def webapp_cards():
     cards = list(get_queue())
     card_messages=[]
     for card in cards:
-        card_messages.append({"message":card['message'], "id":str(card['_id'])})
-    return jsonify(content=card_messages)
+        card_messages.append({
+            "message": card['message'],
+            "id": str(card['_id'])
+        })
+    return jsonify(response=card_messages)
 
 
 @app.route('/webapp/vote', methods=['POST'])
