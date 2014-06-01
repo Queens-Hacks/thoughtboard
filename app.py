@@ -299,13 +299,13 @@ def home():
     return resp
 
 
-<<<<<<< HEAD
+
 #Endpoint returns current post and votes
 @app.route('/message', methods=['GET','POST'])
 def getMessage():
     message = get_current_post()
     return jsonify(message=message['message'],votes=len(message['extender_ids']))
-=======
+
 @app.route('/webapp/get-id')
 @crossdomain(origin='*')
 def webapp_id():
@@ -316,7 +316,7 @@ def webapp_id():
 @crossdomain(origin='*')
 def webapp_cards():
     return '[["message one",1],["another",2],["lalala",3]'
->>>>>>> 894bde3cb17e0744abf94c867b1946ef63ad7648
+
 
 
 # dev stuff
