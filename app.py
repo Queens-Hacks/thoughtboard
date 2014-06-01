@@ -55,6 +55,10 @@ posts: {
 """
 
 
+class NoUserException(Exception):
+    """When user uses code that doesn't exist"""
+
+
 class ChillOut(Exception):
     """When users get too excited (try to re-up-vote or re-post too soon)."""
 
@@ -134,8 +138,20 @@ def check_in(phone_number, code):
 
     The correct code is currently hard-coded to ABC.
     """
+
+    if code != 'ABC':
+        raise NoUserException("You fucked up")
+
     user = pymongo.db.users.find_one({'phone_number': phone_number})
-    return user_data if code == 'ABC' else None
+    return user
+
+
+def vote():
+    """ Allows users to vote for the current posted message and returns
+    True if vote was registered, otherwise returns False.
+
+    Currently defaults to True"""
+    return True
 
 
 def post_message(phone_number, message):
@@ -169,11 +185,38 @@ def save_vote(phone_number):
 @app.route('/sms', methods=['GET','POST'])
 def send_sms():
 
+    #Get number and response
     from_number = request.values.get('From', None)
     from_response = request.values.get('Body',None)
-
-    message=from_response
     resp = twilio.twiml.Response()
+
+    #Check if user response is vote
+    if "vote" in from_response.lower().split(' ',1)[0]:
+        if vote():
+            message="Vote successful"
+        else:
+            message="Vote unsuccessful"
+
+
+    #Check if user response is a post
+    elif "post" in from_response.lower().split(' ',1)[0]:
+        queue_num = post_message(from_number,from_response.lower().split(' ',1)[1])
+        message = "Your message is queued in position " + str(queue_num)
+
+    else:
+        #check if user exists
+        try:
+            check = check_in(from_number,from_response);
+
+        except NoUserException:
+            #error handling
+            message="fucked up"
+            resp.message(message)
+            return str(resp)
+
+        message = ''' Thanks for checking in! To vote, Please
+        text 'vote', otherwise text 'post' and type in your message '''
+
     resp.message(message)
 
     return str(resp)
