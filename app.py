@@ -122,6 +122,7 @@ def get_qr_code():
     """Fetch the current qr code for display"""
     code = pymongo.db.qrcodes.find_one(sort=[('created', DESCENDING)])
     if code is None:
+        print('???????????')
         code = refresh_qr_code()
     return code
 
@@ -206,6 +207,8 @@ def check_qr_code(test_code):
     QRs are immediately expired after one use.
     """
     current = pymongo.db.qrcodes.find_one(sort=[('created', DESCENDING)])
+    print(current)
+    print(test_code)
     if test_code == current['code']:
         refresh_qr_code()
         return True
@@ -219,6 +222,8 @@ def check_in_with_qr_code(user_id, code):
         raise NoSuchUserException('no user exists with id {}'.format(user_id))
     if not check_qr_code(code):
         raise InvalidCodeException('You fucked up -- wrong qr code yoyo')
+    user['last_checkin'] = tznow()
+    pymongo.db.users.save(user)
 
 
 def create_account_with_qr_code(code):
@@ -401,7 +406,6 @@ def webapp_id():
         resp.status_code = 400
         return resp
 
-    check_in_with_qr_code(user['_id'], code)
     return jsonify(status='cool', userId=str(user['_id']))
 
 
