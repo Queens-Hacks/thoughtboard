@@ -391,7 +391,6 @@ def handle_sms():
 @app.route('/')
 def home():
     resp = 'sms code: {}<br/>'.format(get_sms_code().get('code'))
-    update_showing()
     message = get_current_post()
     if message is not None:
         resp += '{} ({} votes)'.format(message['message'],
@@ -505,6 +504,7 @@ def webapp_post_message():
 
 @app.route('/display/')
 def display_display_yo():
+    update_showing()
     return render_template('display.html')
 
 
