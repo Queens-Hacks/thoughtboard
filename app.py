@@ -398,7 +398,7 @@ def webapp_id():
 @app.route('/webapp/check-in')
 @crossdomain(origin='*')
 def webapp_checkin():
-    code = request.values.get('code')
+    code = request.values.get('hash')
     if code is None:
         resp = jsonify(status='bad', message='missing code')
         resp.status_code = 400
