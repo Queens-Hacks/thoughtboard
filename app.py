@@ -94,6 +94,22 @@ def create_sms_code():
     return new_sms
 
 
+def refresh_qr_code():
+    """Create a new one"""
+    while True:
+        code = ''.join(random.choice('abcdefghijklmnopqrstuvwxyz1234567890')
+                       for _ in range(6))
+        existing_with_code = pymongo.db.qrcodes.find_one({'code': code})
+        if existing_with_code is None:
+            break
+
+    new_qr = {
+        'code': code,
+        'created': tznow()
+    }
+    pymongo.db.qrcodes.INSERT(new_qr)
+
+
 def get_sms_code():
     """Fetches the most up-to-date SMS code for the billboard.
 
@@ -108,21 +124,6 @@ def get_sms_code():
         # yo, WARNING: off to the races!
         current = create_sms_code()
     return current['code']
-
-
-def check_sms_code(test_code):
-    """Checks whether the SMS code is currently valid."""
-    codes = pymongo.db.smscodes.find().sort('created', DESCENDING)
-    current = next(codes)
-    if test_code == current['code']:
-        return True
-    else:
-        previous = next(codes)
-        if (test_code == previous['code'] and
-            tznow() - current['created'] < SMS_CODE_GRACE):
-            return True
-        else:
-            return False
 
 
 def get_queue():
@@ -145,6 +146,21 @@ def is_checked_in(user):
     return a_ok
 
 
+def check_sms_code(test_code):
+    """Checks whether the SMS code is currently valid."""
+    codes = pymongo.db.smscodes.find(sort=[('created', DESCENDING)])
+    current = next(codes)
+    if test_code == current['code']:
+        return True
+    else:
+        previous = next(codes)
+        if (test_code == previous['code'] and
+            tznow() - current['created'] < SMS_CODE_GRACE):
+            return True
+        else:
+            return False
+
+
 def check_in_with_sms_code(phone_number, code):
     """Check in (and possibly create) a user, verified by the active code.
 
@@ -161,6 +177,24 @@ def check_in_with_sms_code(phone_number, code):
     user['last_checkin'] = tznow()
     pymongo.db.users.save(user)
     return user
+
+
+def check_qr_code(test_code):
+    """Validate a qr code for realz.
+
+    QRs are immediately expired after one use.
+    """
+    current = pymongo.db.qrcodes.find_one(sort=[('created', DESCENDING)])
+    if test_code == current['code']:
+        refresh_qr_code()
+        return True
+    return False
+
+
+def check_in_with_qr_code(user_id, code):
+    """Check in an existing user with a QR code."""
+    if not check_qr_code(code):
+        raise InvalidCodeException('You fucked up -- wrong qr code yoyo')
 
 
 def get_current_post():
@@ -316,10 +350,20 @@ def getMessage():
     message = get_current_post()
     return jsonify(message=message['message'],votes=len(message['extender_ids']))
 
+
 @app.route('/webapp/get-id')
 @crossdomain(origin='*')
 def webapp_id():
+    code = request.values.get('code') or abort(400)
     return '{"hello": "mr webbapp"}'
+
+
+@app.route('/webapp/check-in')
+@crossdomain(origin='*')
+def webapp_checkin():
+    code = request.values.get('code') or abort(400)
+    user_id = request.values.get('userId') or abort(400)
+    return jsonify(status='cool')
 
 
 #Endpoint to get all messages and ids from queue
@@ -329,7 +373,10 @@ def webapp_cards():
     cards = list(get_queue())
     card_messages=[]
     for card in cards:
-        card_messages.append({"message":card['message'], "id":str(card['_id'])})
+        card_messages.append({
+            "message":card['message'],
+            "id":str(card['_id'])
+        })
     return jsonify(response=card_messages)
 
 
