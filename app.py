@@ -299,10 +299,10 @@ def home():
     return resp
 
 
-@app.route('/webapp')
+@app.route('/webapp/get-id')
 @crossdomain(origin='*')
 def webapp():
-    return 'hi, webapp'
+    return '{"hello": "mr webbapp"}'
 
 
 # dev stuff
