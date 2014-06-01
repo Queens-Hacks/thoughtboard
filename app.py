@@ -196,7 +196,7 @@ def check_in_with_sms_code(phone_number, code):
     Returns the user's data, or raises InvalidCodeException if the code is wrong or expired.
     """
     if not check_sms_code(code):
-        raise InvalidCodeException("You fucked up")
+        raise InvalidCodeException("You There has been an error")
     user = pymongo.db.users.find_one({'phone_number': phone_number})
     if user is None:  # so racey
         user = {
@@ -228,7 +228,7 @@ def check_in_with_qr_code(user_id, code):
     if user is None:
         raise NoSuchUserException('no user exists with id {}'.format(user_id))
     if not check_qr_code(code):
-        raise InvalidCodeException('You fucked up -- wrong qr code yoyo')
+        raise InvalidCodeException('You There has been an error -- wrong qr code yoyo')
     user['last_checkin'] = tznow()
     pymongo.db.users.save(user)
 
@@ -236,7 +236,7 @@ def check_in_with_qr_code(user_id, code):
 def create_account_with_qr_code(code):
     """Creates a new user with a QR code."""
     if not check_qr_code(code):
-        raise InvalidCodeException('You fucked up -- wrong qr code yooy')
+        raise InvalidCodeException('You There has been an error -- wrong qr code yooy')
     now = tznow()
     user = {
         'qr_code': code,
@@ -256,14 +256,15 @@ def get_current_post():
 def update_showing():
     next_ = pymongo.db.posts.find_one({'showtime': {'$exists': False}},
                                       sort=[('showtime', ASCENDING)])
-    # if next_ is not None:
-    #     print('changing...')
-    #     pymongo.db.posts.update({'_id': next_['_id']},
-    #                             {'$set': {'showtime': tznow()}})
-    # else:
-    #     print('nothing in the queue')
-    #
-    # if the the display hath changed: socket_push(key='new_message', val=new_message)
+    if next_ is not None:
+        print('changing...')
+        pymongo.db.posts.update({'_id': next_['_id']},
+                                {'$set': {'showtime': tznow()}})
+    else:
+        print('nothing in the queue')
+
+
+    socket_push(key='new_message', val=get_current_post()['message'])
 
 
 def post_message(user, message):
@@ -355,7 +356,7 @@ def handle_sms():
 
             except InvalidCodeException:
                 #error handling
-                message="fucked up, though you are already checked in..."
+                message="There has been an error, though you are already checked in..."
                 resp.message(message)
                 return str(resp)
 
@@ -369,7 +370,7 @@ def handle_sms():
                 check = check_in_with_sms_code(from_number, first_word);
             except InvalidCodeException:
                 #error handling
-                message="fucked up, and you are not even checked in :("
+                message="There has been an error, and you are not even checked in :("
                 resp.message(message)
                 return str(resp)
 
@@ -390,7 +391,6 @@ def handle_sms():
 @app.route('/')
 def home():
     resp = 'sms code: {}<br/>'.format(get_sms_code().get('code'))
-    update_showing()
     message = get_current_post()
     if message is not None:
         resp += '{} ({} votes)'.format(message['message'],
@@ -504,6 +504,7 @@ def webapp_post_message():
 
 @app.route('/display/')
 def display_display_yo():
+    update_showing()
     return render_template('display.html')
 
 
