@@ -1,13 +1,14 @@
 
-var connection = new WebSocket('ws://' + window.location.host + '/display/socket', ['soap', 'xmpp']);
+var connection = new ReconnectingWebSocket('ws://' + window.location.host + '/display/socket', ['soap', 'xmpp']);
 
 connection.onmessage = function(e) {
-  switch(e.key) {
-    case 'new_sms': updateSms(e.val); break;
-    case 'new_qr': updateQr(e.val); break;
-    case 'new_message': updateMessage(e.val); break;
+  var data = JSON.parse(e.data);
+  console.log('data', data)
+  switch(data.key) {
+    case 'new_sms': updateSms(data.val); break;
+    case 'new_qr': updateQr(data.val); break;
+    case 'new_message': updateMessage(data.val); break;
   }
-  console.log('got', e.data)
 }
 
 

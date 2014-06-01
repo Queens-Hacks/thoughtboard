@@ -103,7 +103,7 @@ def create_sms_code():
         'created': tznow()
     }
     pymongo.db.smscodes.insert(new_sms)
-    socket_push(key='new_sms', val=new_sms)
+    socket_push(key='new_sms', val=new_sms['code'])
     return new_sms
 
 
@@ -121,7 +121,7 @@ def refresh_qr_code():
         'created': tznow()
     }
     pymongo.db.qrcodes.insert(new_qr)
-    socket_push(key='new_qr', val=new_qr)
+    socket_push(key='new_qr', val=new_qr['code'])
     return new_qr
 
 

@@ -1,7 +1,9 @@
 from collections import deque
+import json
 import gevent
 import app as app_module
 from flask_sockets import Sockets
+from geventwebsocket.exceptions import WebSocketError
 
 
 message_queue = deque()
@@ -17,10 +19,13 @@ sockets = Sockets(app_module.app)
 
 @sockets.route('/display/socket')
 def echo(ws):
-    # print('\n'.join(dir(ws)))
     while not ws.closed:
         if len(message_queue) > 0:
-            ws.send(message_queue.popleft())
+            blob = json.dumps(message_queue.popleft())
+            try:
+                ws.send(blob)
+            except WebSocketError:
+                break
         gevent.sleep()
 
 
