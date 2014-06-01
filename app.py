@@ -311,6 +311,12 @@ def webapp_cards():
     return '[["message one",1],["another",2],["lalala",3]'
 
 
+@app.route('/webapp/vote', methods=['POST'])
+@crossdomain(origin='*')
+def webapp_vote():
+    return ''
+
+
 # dev stuff
 
 def push():
