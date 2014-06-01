@@ -199,10 +199,7 @@ def save_vote(user):
     """
 
     current_post = get_current_post();
-
-    if user["_id"] not in current_post["extender_ids"]:
-        current_post["extender_ids"].append(user["_id"])
-        pymongo.db.posts.update(current_post);
+    pymongo.db.posts.update({"_id": current_post["_id"]},{ "$addToSet":user["_id"]});
     return 1
 
 
