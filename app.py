@@ -42,7 +42,8 @@ USER_POST_THROTTLE = timedelta(seconds=0)
 """Collection schemas
 
 users: {
-    phone_number: string
+    phone_number: string  # not present if it's a qr signup
+    qr_code: strong  # not present if sms signup
     created: datetime
     last_checkin: datetime
 }
@@ -206,6 +207,19 @@ def check_in_with_qr_code(user_id, code):
         raise InvalidCodeException('You fucked up -- wrong qr code yoyo')
 
 
+def create_account_with_qr_code(code):
+    """Creates a new user with a QR code."""
+    if not check_qr_code(code):
+        raise InvalidCodeException('You fucked up -- wrong qr code yooy')
+    now = tznow()
+    user = {
+        'qr_code': code,
+        'created': now,
+        'last_checkin': now,
+    }
+    return user
+
+
 def get_current_post():
     showing = pymongo.db.posts.find_one({'showtime': {'$exists': True}},
                                         sort=[('showtime', DESCENDING)])
@@ -363,8 +377,18 @@ def getMessage():
 @app.route('/webapp/get-id')
 @crossdomain(origin='*')
 def webapp_id():
-    code = request.values.get('code') or abort(400)
-    return '{"hello": "mr webbapp"}'
+    code = request.values.get('code')
+    if code is None:
+        resp = jsonify(status='bad', message='missing code')
+        resp.status_code = 400
+        return resp
+    try:
+        user = create_account_with_qr_code(code)
+    except InvalidCodeException:
+        resp = jsonify(status='bad', message='invalid code')
+        resp.status_code = 400
+        return resp
+    return jsonify(status='cool', userId=str(user['_id']))
 
 
 @app.route('/webapp/check-in')
