@@ -3,7 +3,7 @@ import os
 import random
 from datetime import datetime, timedelta
 import twilio.twiml
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, abort
 from flask.ext.pymongo import PyMongo, ASCENDING, DESCENDING
 from utils import crossdomain, tznow
 
@@ -224,7 +224,11 @@ def handle_sms():
     #Get number and response
     from_number = request.values['From']
     from_response = request.values['Body']
-    first_word = from_response.lower().strip().split(' ',1)[0];
+    first_word = from_response.lower().strip().split(' ', 1)[0];
+    try:
+        user_post = from_response.lower().strip().split(' ', 1)[1]
+    except IndexError:
+        user_post = None
     resp = twilio.twiml.Response()
 
     user = get_user_from_phone(from_number)
@@ -241,8 +245,12 @@ def handle_sms():
 
         #Check if user response is a post
         elif "post" in first_word:
+            if user_post is None:
+                message = "whoops, no post provided, nothing to do."
+                resp.message(message)
+                return str(resp)
             try:
-                queue_num = post_message(user, from_response.lower().split(' ',1)[1])
+                queue_num = post_message(user, user_post)
             except ChillOut:
                 message = "chill out dude. wait a bit, then post again."
                 resp.message(message)
