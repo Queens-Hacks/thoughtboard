@@ -105,7 +105,7 @@ def refresh_qr_code():
     """Create a new one"""
     while True:
         code = ''.join(random.choice('abcdefghijklmnopqrstuvwxyz1234567890')
-                       for _ in range(6))
+                       for _ in range(9))
         existing_with_code = pymongo.db.qrcodes.find_one({'code': code})
         if existing_with_code is None:
             break
@@ -114,12 +114,15 @@ def refresh_qr_code():
         'code': code,
         'created': tznow()
     }
-    pymongo.db.qrcodes.INSERT(new_qr)
+    pymongo.db.qrcodes.insert(new_qr)
+    return new_qr
 
 
 def get_qr_code():
     """Fetch the current qr code for display"""
     code = pymongo.db.qrcodes.find_one(sort=[('created', DESCENDING)])
+    if code is None:
+        code = refresh_qr_code()
     return code
 
 
@@ -136,7 +139,7 @@ def get_sms_code():
     if current['created'] + SMS_CODE_RESET < tznow():
         # yo, WARNING: off to the races!
         current = create_sms_code()
-    return current['code']
+    return current
 
 
 def get_queue():
@@ -364,7 +367,7 @@ def handle_sms():
 
 @app.route('/')
 def home():
-    resp = 'sms code: {}<br/>'.format(get_sms_code())
+    resp = 'sms code: {}<br/>'.format(get_sms_code().get('code'))
     update_showing()
     message = get_current_post()
     if message is not None:
@@ -450,9 +453,9 @@ def webapp_vote():
 @crossdomain(origin='*')
 def display_data():
     display_stuff = {
-        'smsCode': get_sms_code(),
-        'qrCode': get_qr_code(),
-        'message': get_current_post(),
+        'smsCode': get_sms_code().get('code'),
+        'qrCode': get_qr_code().get('code'),
+        'message': get_current_post().get('message'),
     }
     return jsonify(status='cool', **display_stuff)
 
