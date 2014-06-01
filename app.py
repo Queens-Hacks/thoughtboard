@@ -169,8 +169,11 @@ def update_showing():
     next_ = pymongo.db.posts.find_one({'showtime': {'$exists': False}},
                                       sort=[('showtime', ASCENDING)])
     if next_ is not None:
+        print('changing...')
         pymongo.db.posts.update({'_id': next_['_id']},
                                 {'$set': {'showtime': datetime.now()}})
+    else:
+        print('nothing in the queue')
 
 
 def post_message(user, message):
@@ -283,13 +286,15 @@ def handle_sms():
 
 @app.route('/')
 def home():
+    resp = 'sms code: {}<br/>'.format(get_sms_code())
     update_showing()
     message = get_current_post()
     if message is not None:
-        message = message['message']
+        resp += '{} ({} votes)'.format(message['message'],
+                                       len(message['extender_ids']))
     else:
-        message = 'No post yet :('
-    return message
+        resp += 'No post yet :('
+    return resp
 
 
 # dev stuff
