@@ -312,10 +312,15 @@ def webapp_id():
     return '{"hello": "mr webbapp"}'
 
 
+#Endpoint to get all messages and ids from queue
 @app.route('/webapp/cards')
 @crossdomain(origin='*')
 def webapp_cards():
-    return '[["message one",1],["another",2],["lalala",3]'
+    cards = list(get_queue())
+    card_messages=[]
+    for card in cards:
+        card_messages.append({"message":card['message'], "id":str(card['_id'])})
+    return jsonify(response=card_messages)
 
 
 
