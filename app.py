@@ -449,7 +449,7 @@ def webapp_cards():
     return jsonify(status='cool', content=card_messages)
 
 
-@app.route('/webapp/vote', methods=['POST'])
+@app.route('/webapp/upvote', methods=['POST'])
 @crossdomain(origin='*')
 def webapp_vote():
     post_id = request.values['cardId'];
