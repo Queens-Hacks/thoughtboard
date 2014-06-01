@@ -506,6 +506,11 @@ def webapp_post_message():
 
 @app.route('/display/')
 def display_display_yo():
+    return render_template('display.html')
+
+
+@app.route('/display/pop')
+def display_display_yo():
     update_showing()
     return render_template('display.html')
 
