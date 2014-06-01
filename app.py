@@ -46,7 +46,7 @@ users: {
     last_checkin: datetime
 }
 
-codes: {
+smscodes: {
     code: string
     created: datetime
 }
@@ -80,8 +80,9 @@ def notz(dt):
 def create_sms_code():
     """Create a new code. More races woo!"""
     while True:
-        code = ''.join(random.choice('abcdefghijklmnopqrstuvwxyz1234567890') for _ in range(6))
-        existing_with_code = pymongo.db.codes.find_one({'code': code})
+        code = ''.join(random.choice('abcdefghijklmnopqrstuvwxyz1234567890')
+                       for _ in range(6))
+        existing_with_code = pymongo.db.smscodes.find_one({'code': code})
         if existing_with_code is None:
             break
 
@@ -89,7 +90,7 @@ def create_sms_code():
         'code': code,
         'created': datetime.now()
     }
-    pymongo.db.codes.insert(new_sms)
+    pymongo.db.smscodes.insert(new_sms)
     return new_sms
 
 
@@ -98,7 +99,7 @@ def get_sms_code():
 
     This may trigger a new code if one is due.
     """
-    codes = pymongo.db.codes.find().sort('created', DESCENDING)
+    codes = pymongo.db.smscodes.find().sort('created', DESCENDING)
     try:
         current = next(codes)
     except StopIteration:  # empty database
@@ -111,7 +112,7 @@ def get_sms_code():
 
 def check_sms_code(test_code):
     """Checks whether the SMS code is currently valid."""
-    codes = pymongo.db.codes.find().sort('created', DESCENDING)
+    codes = pymongo.db.smscodes.find().sort('created', DESCENDING)
     current = next(codes)
     if test_code == current['code']:
         return True
