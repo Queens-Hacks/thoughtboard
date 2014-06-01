@@ -61,7 +61,7 @@ smscodes: {
 
 qrcodes: {
     code: string
-    taken: bool
+    created: datetime
 }
 
 posts: {
@@ -450,7 +450,9 @@ def webapp_checkin():
 @app.route('/webapp/cards')
 @crossdomain(origin='*')
 def webapp_cards():
+    print('getting cards...')
     cards = list(get_queue())
+    print('queued: {}', len(cards))
     card_messages=[]
     for card in cards:
         card_messages.append({
