@@ -367,11 +367,6 @@ def home():
 
 
 
-#Endpoint returns current post and votes
-@app.route('/message', methods=['GET','POST'])
-def getMessage():
-    message = get_current_post()
-    return jsonify(message=message['message'],votes=len(message['extender_ids']))
 
 
 @app.route('/webapp/get-id')
@@ -425,8 +420,8 @@ def webapp_cards():
     card_messages=[]
     for card in cards:
         card_messages.append({
-            "message":card['message'],
-            "id":str(card['_id'])
+            "message": card['message'],
+            "id": str(card['_id'])
         })
     return jsonify(response=card_messages)
 
@@ -434,7 +429,24 @@ def webapp_cards():
 @app.route('/webapp/vote', methods=['POST'])
 @crossdomain(origin='*')
 def webapp_vote():
-    return ''
+     userid = request.values['userid']
+
+    #get user id passed as parameter
+    # check userid exists
+
+    # if is_checked_in(userid)
+    #     save_vote(userid)
+    #     return jsonify(response="success")
+    # else
+    #     return jsonify(response="error")
+
+
+
+
+
+
+    #if exists, let user vote
+    #if it doesn't exist, return error
 
 
 # dev stuff
