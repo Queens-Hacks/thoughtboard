@@ -29,10 +29,10 @@ pymongo = PyMongo(app)
 
 
 # Some constants
-SMS_CODE_RESET = timedelta(seconds=30)
-SMS_CODE_GRACE = timedelta(seconds=15)
+SMS_CODE_RESET = timedelta(minutes=10)
+SMS_CODE_GRACE = timedelta(minutes=10)
 USER_CHECKIN_EXPIRE = timedelta(minutes=15)
-USER_POST_THROTTLE = timedelta(seconds=10)
+USER_POST_THROTTLE = timedelta(seconds=0)
 
 
 """Collection schemas
