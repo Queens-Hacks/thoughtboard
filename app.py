@@ -160,8 +160,8 @@ def check_in_with_sms_code(phone_number, code):
 
 
 def get_current_post():
-    showing = pymongo.db.posts.find_one({'showtime': {'$exists', True}},
-                                        sort=('showtime', DESCENDING))
+    showing = pymongo.db.posts.find_one({'showtime': {'$exists': True}},
+                                        sort=[('showtime', DESCENDING)])
     return showing
 
 
@@ -274,7 +274,7 @@ def handle_sms():
 
 @app.route('/')
 def home():
-    message = get_current_post()
+    message = get_current_post() or 'No post yet :('
     return message
 
 
