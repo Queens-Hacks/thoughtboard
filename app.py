@@ -533,6 +533,19 @@ def preload():
     return str([post_message(user, m) for m in messages])
 
 
+@app.route('/seed')
+def seed():
+    """seed some stuff"""
+    # qr code
+    # sms code
+    # initial message
+    app.pymongo.db.posts.insert({
+        'message': 'The first post',
+        'submitted': tznow() - timedelta(minutes=60),
+        'showtime': tznow() - timedelta(minutes=50),
+    })
+
+
 def push():
     """Push a test request context"""
     ctx = app.test_request_context()
