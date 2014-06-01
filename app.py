@@ -37,6 +37,7 @@ USER_CHECKIN_EXPIRE = timedelta(minutes=15)
 
 users: {
     phone_number: string
+    created: datetime
     last_checkin: datetime
 }
 
@@ -55,7 +56,7 @@ posts: {
 """
 
 
-class NoUserException(Exception):
+class InvalidCodeException(Exception):
     """When user uses code that doesn't exist"""
 
 class NotCheckedInException(Exception):
@@ -137,11 +138,18 @@ def is_checked_in(phone_number):
 def check_in(phone_number, code):
     """Check in (and possibly create) a user, verified by the active code.
 
-    Returns the user's data, or None if the code is wrong or expired.
+    Returns the user's data, or raises InvalidCodeException if the code is wrong or expired.
     """
     if not check_sms_code(code):
-        raise NoUserException("You fucked up")
+        raise InvalidCodeException("You fucked up")
     user = pymongo.db.users.find_one({'phone_number': phone_number})
+    if user is None:  # so racey
+        user = {
+            'phone_number': phone_number,
+            'created': datetime.now(),
+        }
+    user['last_checkin'] = datetime.now()
+    pymongo.db.users.save(user)
     return user
 
 
@@ -200,11 +208,11 @@ def send_sms():
             message = "Your message is queued in position " + str(queue_num)
 
         else:
-            #check if user exists
+            #check if code is correct
             try:
                 check = check_in(from_number,from_response);
 
-            except NoUserException:
+            except InvalidCodeException:
                 #error handling
                 message="fucked up"
                 resp.message(message)
@@ -215,11 +223,11 @@ def send_sms():
 
     #User hasn't checked in but is checking in now
     elif "post" not in first_word and "vote" not in first_word:
-          #check if user exists
+          #check if code is correct
             try:
                 check = check_in(from_number,from_response);
 
-            except NoUserException:
+            except InvalidCodeException:
                 #error handling
                 message="fucked up"
                 resp.message(message)
