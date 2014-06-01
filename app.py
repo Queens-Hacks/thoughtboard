@@ -156,6 +156,8 @@ def get_user_from_phone(phone_number):
 def get_user_from_user_id(userid):
     return  pymongo.db.users.find_one({'_id': userid})
 
+def get_post_from_post_id(post_id):
+    return  pymongo.db.posts.find_one({'_id': post_id})
 
 def is_checked_in(user):
     """Test whether a user is checked in or not."""
@@ -274,7 +276,7 @@ def post_message(user, message):
     return get_queue().count()
 
 
-def save_vote(user):
+def save_vote(user, post= None):
     """Register a vote for a user.
 
     Returns 1 if the vote was counted.
@@ -282,10 +284,15 @@ def save_vote(user):
     Currently it is hard-coded to always succeed
     """
 
-    current_post = get_current_post();
-    pymongo.db.posts.update({"_id": current_post["_id"]},
-                            {"$addToSet":{"extender_ids":user["_id"]}});
+    if post is None:
+        post = get_current_post();
+
+    pymongo.db.posts.update({"_id": post["_id"]},
+                                {"$addToSet":{"extender_ids":user["_id"]}});
+
     return 1
+
+
 
 
 @app.route('/sms', methods=['GET','POST'])
@@ -439,10 +446,12 @@ def webapp_cards():
 @app.route('/webapp/vote', methods=['POST'])
 @crossdomain(origin='*')
 def webapp_vote():
+    post_id = request.values['cardId'];
 
     user = get_user_from_user_id(ObjectId(request.values['userId']))
     if is_checked_in(user):
-        save_vote(user)
+        post = get_post_from_post_id(post_id)
+        save_vote(user,post)
         return jsonify(status='cool')
     else:
         resp = jsonify(response="error")
