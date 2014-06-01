@@ -1,5 +1,5 @@
 
-var connection = new WebSocket('ws://localhost:5000/display/socket', ['soap', 'xmpp']);
+var connection = new WebSocket('ws://' + window.location.host + '/display/socket', ['soap', 'xmpp']);
 
 connection.onmessage = function(e) {
   switch(e.key) {
