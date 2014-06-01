@@ -19,6 +19,7 @@ CONFIGS = (
 
 # Set up the app
 app = Flask(__name__)
+app.config.update(DEBUG=(os.environ.get('DEBUG') == 'TRUE'))
 app.config.update(**{v: os.environ[v] for v in CONFIGS})
 app.config['MONGO_URI'] = app.config['MONGOLAB_URI']  # for flask-pymongo
 
