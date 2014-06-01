@@ -158,6 +158,12 @@ def check_in_with_sms_code(phone_number, code):
     return user
 
 
+def get_current_post():
+    showing = pymongo.db.posts.find_one({'showtime': {'$exists', True}},
+                                        sort=('showtime',DESCENDING))
+    return showing
+
+
 def post_message(user, message):
     """Try to queue a message for a user.
 
