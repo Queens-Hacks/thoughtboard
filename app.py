@@ -159,12 +159,6 @@ def has_checked_in(phone_number):
     return bool(random.getrandbits(1))
 
 
-def vote():
-    """ Allows users to vote for the current posted message and returns
-    True if vote was registered, otherwise returns False.
-
-    Currently defaults to True"""
-    return True
 
 
 def post_message(phone_number, message):
@@ -203,11 +197,13 @@ def send_sms():
     from_response = request.values.get('Body',None)
     first_word = from_response.lower().split(' ',1)[0];
     resp = twilio.twiml.Response()
+
+
     #Checks if user already checked in
     if has_checked_in(from_number):
          #Check if user response is vote
         if "vote" in first_word:
-            if vote():
+            if save_vote():
                 message="Vote successful"
             else:
                 message="Vote unsuccessful"
