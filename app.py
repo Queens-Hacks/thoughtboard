@@ -117,12 +117,18 @@ def refresh_qr_code():
     pymongo.db.qrcodes.INSERT(new_qr)
 
 
+def get_qr_code():
+    """Fetch the current qr code for display"""
+    code = pymongo.db.qrcodes.find_one(sort=[('created', DESCENDING)])
+    return code
+
+
 def get_sms_code():
     """Fetches the most up-to-date SMS code for the billboard.
 
     This may trigger a new code if one is due.
     """
-    codes = pymongo.db.smscodes.find().sort('created', DESCENDING)
+    codes = pymongo.db.smscodes.find(sort=[('created', DESCENDING)])
     try:
         current = next(codes)
     except StopIteration:  # empty database
@@ -438,6 +444,17 @@ def webapp_vote():
         resp = jsonify(response="error")
         resp.status_code = 400
         return resp
+
+
+@app.route('/display')
+@crossdomain(origin='*')
+def display_data():
+    display_stuff = {
+        'smsCode': get_sms_code(),
+        'qrCode': get_qr_code(),
+        'message': get_current_post(),
+    }
+    return jsonify(status='cool', **display_stuff)
 
 
 # dev stuff
