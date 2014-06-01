@@ -28,9 +28,10 @@ pymongo = PyMongo(app)
 
 
 # Some constants
-SMS_CODE_RESET = timedelta(seconds=10)
-SMS_CODE_GRACE = timedelta(seconds=5)
+SMS_CODE_RESET = timedelta(seconds=30)
+SMS_CODE_GRACE = timedelta(seconds=15)
 USER_CHECKIN_EXPIRE = timedelta(minutes=15)
+USER_POST_THROTTLE = timedelta(seconds=10)
 
 
 """Collection schemas
@@ -48,10 +49,10 @@ codes: {
 
 posts: {
     message: string
-    poster: phone_number
+    poster_id: user_id
     submitted: datetime
     showtime: datetime  # not present if it hasn't been shown yet
-    extenders: [user_ids]
+    extender_ids: [user_ids]
 }
 """
 
@@ -126,16 +127,20 @@ def get_queue():
     return queue_in_order
 
 
-def is_checked_in(phone_number):
+def get_user_from_phone(phone_number):
+    """Get a user given their phone number, or None if they don't exist"""
+    return pymongo.db.users.find_one({'phone_number': phone_number})
+
+
+def is_checked_in(user):
     """Test whether a user is checked in or not."""
-    user = pymongo.db.users.find_one({'phone_number': phone_number})
     if user is None:
         return False
     a_ok = notz(user['last_checkin']) + USER_CHECKIN_EXPIRE > datetime.now()
     return a_ok
 
 
-def check_in(phone_number, code):
+def check_in_with_sms_code(phone_number, code):
     """Check in (and possibly create) a user, verified by the active code.
 
     Returns the user's data, or raises InvalidCodeException if the code is wrong or expired.
@@ -153,23 +158,28 @@ def check_in(phone_number, code):
     return user
 
 
-
-
-def post_message(phone_number, message):
+def post_message(user, message):
     """Try to queue a message for a user.
 
     Returns the message's position in the queue.
 
     Raises ChillOut if the user has posted too many messages recently.
-
-    Currently hard-coded in a state where:
-    posting any message succeeds and returns a random queue position
-    EXCEPT the message 'fail' raises ChillOut.
     """
-    import random
-    if message == 'fail':
+    user_id = user['_id']
+    prev = pymongo.db.posts.find_one({'poster_id': user_id})\
+                           .sort('submitted', DESCENDING)
+    if (prev is not None and
+        notz(prev['submitted']) + USER_POST_THROTTLE < datetime.now()):
         raise ChillOut('Whoa. Chill out, hey. So many messages.')
-    return random.randint(1, 6)
+
+    post = {
+        'message': message,
+        'poster_id': user_id,
+        'submitted': datetime.now(),
+        'extenders': [user_id],
+    }
+    pymongo.db.posts.insert(post)
+    return len(get_queue())
 
 
 def save_vote(phone_number):
@@ -192,9 +202,11 @@ def send_sms():
     first_word = from_response.lower().split(' ',1)[0];
     resp = twilio.twiml.Response()
 
+    user = get_user_from_phone(from_number)
 
     #Checks if user already checked in
-    if is_checked_in(from_number):
+
+    if is_checked_in(user):
          #Check if user response is vote
         if "vote" in first_word:
             if save_vote():
@@ -204,13 +216,13 @@ def send_sms():
 
         #Check if user response is a post
         elif "post" in first_word:
-            queue_num = post_message(from_number,from_response.lower().split(' ',1)[1])
-            message = "Your message is queued in position " + str(queue_num)
+            queue_num = post_message(user, from_response.lower().split(' ',1)[1])
+            message = "Your message is queued in position {}".format(queue_num)
 
         else:
             #check if code is correct
             try:
-                check = check_in(from_number,from_response);
+                check = check_in_with_sms_code(from_number, from_response);
 
             except InvalidCodeException:
                 #error handling
@@ -225,7 +237,7 @@ def send_sms():
     elif "post" not in first_word and "vote" not in first_word:
           #check if code is correct
             try:
-                check = check_in(from_number,from_response);
+                check = check_in_with_sms_code(from_number, from_response);
 
             except InvalidCodeException:
                 #error handling
