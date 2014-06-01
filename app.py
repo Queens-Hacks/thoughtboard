@@ -235,7 +235,12 @@ def handle_sms():
 
         #Check if user response is a post
         elif "post" in first_word:
-            queue_num = post_message(user, from_response.lower().split(' ',1)[1])
+            try:
+                queue_num = post_message(user, from_response.lower().split(' ',1)[1])
+            except ChillOut:
+                message = "chill out dude. wait a bit, then post again."
+                resp.message(message)
+                return str(resp)
             message = "Your message is queued in position {}".format(queue_num)
 
         else:
