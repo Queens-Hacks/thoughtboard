@@ -145,16 +145,6 @@ def check_in(phone_number, code):
     return user
 
 
-def has_checked_in(phone_number):
-    """ Checks if the phone number is already in the database
-    If it is, then the user is connected and returns true. 
-    Otherwise returns false.
-
-    Currently returns a random boolean"""
-    import random
-    return bool(random.getrandbits(1))
-
-
 
 
 def post_message(phone_number, message):
