@@ -3,7 +3,7 @@ import os
 import random
 from datetime import datetime, timedelta
 import twilio.twiml
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask.ext.pymongo import PyMongo, ASCENDING, DESCENDING
 from utils import crossdomain
 
@@ -298,6 +298,13 @@ def home():
         resp += 'No post yet :('
     return resp
 
+
+
+#Endpoint returns current post and votes
+@app.route('/message', methods=['GET','POST'])
+def getMessage():
+    message = get_current_post()
+    return jsonify(message=message['message'],votes=len(message['extender_ids']))
 
 @app.route('/webapp/get-id')
 @crossdomain(origin='*')
