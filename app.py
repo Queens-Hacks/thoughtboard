@@ -229,6 +229,7 @@ def create_account_with_qr_code(code):
         'created': now,
         'last_checkin': now,
     }
+    pymongo.db.users.insert(user)
     return user
 
 
