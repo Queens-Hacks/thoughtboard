@@ -482,10 +482,8 @@ def webapp_post_message():
 
     Raises ChillOut if the user has posted too many messages recently.
     """
-
-    user = request.values['userId']
+    user_id = request.values['userId']
     message = request.values['message']
-    user_id = user['_id']
     prev = pymongo.db.posts.find_one({'poster_id': user_id},
                                      sort=[('submitted', DESCENDING)])
     if (prev is not None and
