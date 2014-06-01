@@ -323,6 +323,11 @@ def webapp_cards():
     return jsonify(response=card_messages)
 
 
+@app.route('/webapp/vote', methods=['POST'])
+@crossdomain(origin='*')
+def webapp_vote():
+    return ''
+
 
 # dev stuff
 
