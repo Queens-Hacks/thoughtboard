@@ -173,8 +173,8 @@ def post_message(user, message):
     Raises ChillOut if the user has posted too many messages recently.
     """
     user_id = user['_id']
-    prev = pymongo.db.posts.find_one({'poster_id': user_id})\
-                           .sort('submitted', DESCENDING)
+    prev = pymongo.db.posts.find_one({'poster_id': user_id},
+                                     sort=[('submitted', DESCENDING)])
     if (prev is not None and
         notz(prev['submitted']) + USER_POST_THROTTLE < datetime.now()):
         raise ChillOut('Whoa. Chill out, hey. So many messages.')
