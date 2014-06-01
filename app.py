@@ -12,6 +12,7 @@ app = Flask(__name__)
 
 
 CONFIGS = (
+    'WEBAPP_URL',
     'AUTH_TOKEN',
     'CELL_NUM',
     'MONGOLAB_URI',
