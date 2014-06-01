@@ -207,7 +207,8 @@ def save_vote(user):
     """
 
     current_post = get_current_post();
-    pymongo.db.posts.update({"_id": current_post["_id"]},{ "$addToSet":user["_id"]});
+    pymongo.db.posts.update({"_id": current_post["_id"]},
+                            {"$addToSet":{"extender_ids":user["_id"]}});
     return 1
 
 
