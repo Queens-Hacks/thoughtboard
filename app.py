@@ -4,7 +4,7 @@ import random
 from datetime import datetime, timedelta
 import twilio.twiml
 from flask import Flask, request
-from flask.ext.pymongo import PyMongo
+from flask.ext.pymongo import PyMongo, DESCENDING
 
 app = Flask(__name__)
 
@@ -28,8 +28,8 @@ pymongo = PyMongo(app)
 
 
 # Some constants
-SMS_CODE_RESET = timedelta(minutes=30)
-SMS_CODE_GRACE = timedelta(minutes=5)
+SMS_CODE_RESET = timedelta(seconds=10)
+SMS_CODE_GRACE = timedelta(seconds=5)
 USER_CHECKIN_EXPIRE = timedelta(minutes=15)
 
 
@@ -92,12 +92,12 @@ def get_sms_code():
 
     This may trigger a new code if one is due.
     """
-    codes = pymongo.db.codes.find().sort('created')
+    codes = pymongo.db.codes.find().sort('created', DESCENDING)
     try:
         current = next(codes)
-    except StopIteration:
+    except StopIteration:  # empty database
         current = create_sms_code()
-    if notz(current['created']) + SMS_CODE_RESET > datetime.now():
+    if notz(current['created']) + SMS_CODE_RESET < datetime.now():
         # yo, WARNING: off to the races!
         current = create_sms_code()
     return current['code']
@@ -105,7 +105,7 @@ def get_sms_code():
 
 def check_sms_code(test_code):
     """Checks whether the SMS code is currently valid."""
-    codes = pymongo.db.codes.find().sort('created')
+    codes = pymongo.db.codes.find().sort('created', DESCENDING)
     current = next(codes)
     if test_code == current['code']:
         return True
@@ -138,13 +138,9 @@ def check_in(phone_number, code):
     """Check in (and possibly create) a user, verified by the active code.
 
     Returns the user's data, or None if the code is wrong or expired.
-
-    The correct code is currently hard-coded to ABC.
     """
-
-    if code != 'ABC':
+    if not check_sms_code(code):
         raise NoUserException("You fucked up")
-
     user = pymongo.db.users.find_one({'phone_number': phone_number})
     return user
 
