@@ -186,7 +186,7 @@ def send_sms():
 
 
     #Checks if user already checked in
-    if has_checked_in(from_number):
+    if is_checked_in(from_number):
          #Check if user response is vote
         if "vote" in first_word:
             if save_vote():
