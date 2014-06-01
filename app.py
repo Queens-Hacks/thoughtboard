@@ -519,9 +519,9 @@ def display_poppin():
 @crossdomain(origin='*')
 def display_data():
     display_stuff = {
-        'smsCode': get_sms_code().get('code'),
-        'qrCode': get_qr_code().get('code'),
-        'message': get_current_post().get('message'),
+        'smsCode': (get_sms_code() or {}).get('code'),
+        'qrCode': (get_qr_code() or {}).get('code'),
+        'message': (get_current_post() or {}).get('message'),
     }
     return jsonify(status='cool', **display_stuff)
 
