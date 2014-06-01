@@ -191,7 +191,7 @@ def post_message(user, message):
         'message': message,
         'poster_id': user_id,
         'submitted': datetime.now(),
-        'extenders': [user_id],
+        'extender_ids': [user_id],
     }
     pymongo.db.posts.insert(post)
     return get_queue().count()
