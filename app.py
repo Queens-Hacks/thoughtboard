@@ -188,7 +188,7 @@ def post_message(user, message):
     return len(get_queue())
 
 
-def save_vote(phone_number):
+def save_vote(user):
     """Register a vote for a user.
 
     Returns 1 if the vote was counted.
@@ -196,6 +196,12 @@ def save_vote(phone_number):
 
     Currently it is hard-coded to always succeed
     """
+
+    current_post = get_current_post();
+
+    if user["_id"] not in current_post["extender_ids"]:
+        current_post["extender_ids"].append(user["_id"])
+        pymongo.db.posts.update(current_post);
     return 1
 
 
@@ -215,7 +221,7 @@ def handle_sms():
     if is_checked_in(user):
          #Check if user response is vote
         if "vote" in first_word:
-            if save_vote():
+            if save_vote(user):
                 message="Vote successful"
             else:
                 message="Vote unsuccessful"
