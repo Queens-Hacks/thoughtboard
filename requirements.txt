@@ -3,3 +3,6 @@ pytz==2014.3
 Flask==0.10.1
 Flask-PyMongo==0.3.0
 gunicorn==18.0
+
+# sockets to run the display API... only thing that breaks python3.
+Flask-Sockets==0.1
