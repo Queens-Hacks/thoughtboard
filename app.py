@@ -301,8 +301,14 @@ def home():
 
 @app.route('/webapp/get-id')
 @crossdomain(origin='*')
-def webapp():
+def webapp_id():
     return '{"hello": "mr webbapp"}'
+
+
+@app.route('/webapp/cards')
+@crossdomain(origin='*')
+def webapp_cards():
+    return '[["message one",1],["another",2],["lalala",3]'
 
 
 # dev stuff
