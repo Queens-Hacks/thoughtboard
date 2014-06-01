@@ -194,7 +194,7 @@ def save_vote(phone_number):
 
 
 @app.route('/sms', methods=['GET','POST'])
-def send_sms():
+def handle_sms():
 
     #Get number and response
     from_number = request.values.get('From', None)
