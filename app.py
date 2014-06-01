@@ -510,7 +510,7 @@ def display_display_yo():
 
 
 @app.route('/display/pop')
-def display_display_yo():
+def display_poppin():
     update_showing()
     return render_template('display.html')
 
