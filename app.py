@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 import twilio.twiml
 from flask import Flask, request
 from flask.ext.pymongo import PyMongo, ASCENDING, DESCENDING
+from utils import crossdomain
+
 
 app = Flask(__name__)
 
@@ -295,6 +297,12 @@ def home():
     else:
         resp += 'No post yet :('
     return resp
+
+
+@app.route('/webapp')
+@crossdomain(origin='*')
+def webapp():
+    return 'hi, webapp'
 
 
 # dev stuff
