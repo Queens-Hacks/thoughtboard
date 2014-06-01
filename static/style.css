@@ -11,3 +11,7 @@ code {
 p {
   margin-left: -128px;
 }
+
+.page-link {
+  background: #fff;
+}
