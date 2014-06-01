@@ -51,6 +51,11 @@ smscodes: {
     created: datetime
 }
 
+qrcodes: {
+    code: string
+    taken: bool
+}
+
 posts: {
     message: string
     poster_id: user_id
