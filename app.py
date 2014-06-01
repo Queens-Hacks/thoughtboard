@@ -473,6 +473,36 @@ def webapp_vote():
         resp.status_code = 400
         return resp
 
+@app.route('/webapp/new-post', methods=['POST'])
+@crossdomain(origin='*')
+def webapp_post_message():
+    """Try to queue a message for a user.
+
+    Returns the message's position in the queue.
+
+    Raises ChillOut if the user has posted too many messages recently.
+    """
+
+    user = request.values['userId']
+    message = request.values['message']
+    user_id = user['_id']
+    prev = pymongo.db.posts.find_one({'poster_id': user_id},
+                                     sort=[('submitted', DESCENDING)])
+    if (prev is not None and
+        prev['submitted'] + USER_POST_THROTTLE > tznow()):
+            resp = jsonify(response="error - too many attempts")
+            resp.status_code = 400
+            return resp
+
+    post = {
+        'message': message,
+        'poster_id': user_id,
+        'submitted': tznow(),
+        'extender_ids': [user_id],
+    }
+    pymongo.db.posts.insert(post)
+    return jsonify(status='cool')
+
 
 @app.route('/display/')
 def display_display_yo():
