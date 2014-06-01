@@ -400,6 +400,8 @@ def webapp_id():
         resp = jsonify(status='bad', message='invalid code')
         resp.status_code = 400
         return resp
+
+    check_in_with_qr_code(user['_id'], code)
     return jsonify(status='cool', userId=str(user['_id']))
 
 
