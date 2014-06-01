@@ -255,15 +255,16 @@ def get_current_post():
 
 def update_showing():
     next_ = pymongo.db.posts.find_one({'showtime': {'$exists': False}},
-                                      sort=[('showtime', ASCENDING)])
-    # if next_ is not None:
-    #     print('changing...')
-    #     pymongo.db.posts.update({'_id': next_['_id']},
-    #                             {'$set': {'showtime': tznow()}})
-    # else:
-    #     print('nothing in the queue')
-    #
-    # if the the display hath changed: socket_push(key='new_message', val=new_message)
+                                      sort=[('showtime', DESCENDING)])
+    if next_ is not None:
+        print('changing...')
+        pymongo.db.posts.update({'_id': next_['_id']},
+                                {'$set': {'showtime': tznow()}})
+    else:
+        print('nothing in the queue')
+
+
+    socket_push(key='new_message', val=get_current_post()['message'])
 
 
 def post_message(user, message):
