@@ -216,9 +216,9 @@ def save_vote(user):
 def handle_sms():
 
     #Get number and response
-    from_number = request.values.get('From', None)
-    from_response = request.values.get('Body',None)
-    first_word = from_response.lower().split(' ',1)[0];
+    from_number = request.values['From']
+    from_response = request.values['Body']
+    first_word = from_response.lower().strip().split(' ',1)[0];
     resp = twilio.twiml.Response()
 
     user = get_user_from_phone(from_number)
@@ -241,31 +241,30 @@ def handle_sms():
         else:
             #check if code is correct
             try:
-                check = check_in_with_sms_code(from_number, from_response);
+                check = check_in_with_sms_code(from_number, first_word);
 
             except InvalidCodeException:
                 #error handling
-                message="fucked up"
+                message="fucked up, though you are already checked in..."
                 resp.message(message)
                 return str(resp)
 
-            message = ''' Thanks for checking in! To vote, Please
-            text 'vote', otherwise text 'post' and type in your message '''
+            message = ("Thanks for checking in! To vote, Please text 'vote', "
+                       "otherwise text 'post' and type in your message")
 
     #User hasn't checked in but is checking in now
     elif "post" not in first_word and "vote" not in first_word:
           #check if code is correct
             try:
-                check = check_in_with_sms_code(from_number, from_response);
-
+                check = check_in_with_sms_code(from_number, first_word);
             except InvalidCodeException:
                 #error handling
-                message="fucked up"
+                message="fucked up, and you are not even checked in :("
                 resp.message(message)
                 return str(resp)
 
-            message = ''' Thanks for checking in! To vote, Please
-            text 'vote', otherwise text 'post' and type in your message '''
+            message = ("Thanks for checking in! To vote, Please text 'vote', "
+                       "otherwise text 'post' and type in your message")
     else:
         #error handling
         message="Not checked in"
