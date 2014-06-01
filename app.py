@@ -37,6 +37,7 @@ USER_CHECKIN_EXPIRE = timedelta(minutes=15)
 
 users: {
     phone_number: string
+    created: datetime
     last_checkin: datetime
 }
 
@@ -142,6 +143,13 @@ def check_in(phone_number, code):
     if not check_sms_code(code):
         raise NoUserException("You fucked up")
     user = pymongo.db.users.find_one({'phone_number': phone_number})
+    if user is None:  # so racey
+        user = {
+            'phone_number': phone_number,
+            'created': datetime.now(),
+        }
+    user['last_checkin'] = datetime.now()
+    pymongo.db.users.save(user)
     return user
 
 
