@@ -14,4 +14,4 @@ Thoughtboard is a democratic billboard for sharing the pulse of a community. App
 Displays a unique QR code for per-user web sessions, a phone number for Twilio integration, and the current top thought.
 
 ### Smart-phone webapp
-See [thoughtboard-webapp](/Queens-Hacks/thoughtboard-webapp) for the static webapp.
+See [thoughtboard-webapp](https://github.com/Queens-Hacks/thoughtboard-webapp) for the static webapp.
